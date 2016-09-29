@@ -81,10 +81,11 @@ func main() {
 	excludes := build_excludes(*x)
 
 	h_file, err := os.Create(*saveto)
+	defer h_file.Close()
 	if err != nil {
+		flag.Usage()
 		return
 	}
-	defer h_file.Close()
 	filepath.Walk(*dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
@@ -99,10 +100,9 @@ func main() {
 		if !info.IsDir() {
 			h, err := Hash_file(path)
 			if err == nil {
-				h_file.WriteString(h)
+				h_file.WriteString(h + "\r\n")
 			}
 		}
 		return nil
 	})
-	fmt.Print(*dir, excludes, saveto)
 }
