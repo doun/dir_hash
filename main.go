@@ -40,6 +40,7 @@ func build_excludes(x string) []exclude {
 	var excludes []exclude
 	xarray := strings.Split(x, ",")
 	for _, s := range xarray {
+		s = strings.Trim(s, " ")
 		if len(s) == 0 {
 			continue
 		}
@@ -75,7 +76,7 @@ func (self *exclude) Exclude(path string) bool {
 func main() {
 	dir := flag.String("p", ".", "dir to hash")
 	x := flag.String("x", "", "file/dir name to exclude, seperate with ','")
-	saveto := flag.String("o", "hash", "file name to save hashed info, will be truncked if exist!!")
+	saveto := flag.String("o", "", "file name to save hashed info, will be truncked if exist!!")
 	flag.Parse()
 
 	excludes := build_excludes(*x)

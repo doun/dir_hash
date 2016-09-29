@@ -17,9 +17,9 @@ func Test_hash_file(t *testing.T) {
 }
 
 func Test_exclude_building(t *testing.T) {
-	x := "*a, a*, *a*"
+	x := "*a, a*, *a*, cdd"
 	contains := []string{"bcd", "bbd"}
-	not_contains := []string{"aa", "abb"}
+	not_contains := []string{"aa", "abb", "cdd"}
 	excludes := build_excludes(x)
 	for _, p := range contains {
 		if FileExcluded(p, excludes) {
