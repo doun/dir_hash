@@ -74,7 +74,7 @@ func (self *exclude) Exclude(path string) bool {
 }
 
 func main() {
-	dir := flag.String("p", ".", "dir to hash")
+	dir := flag.String("d", ".", "dir to be hashed")
 	x := flag.String("x", "", "file/dir name to exclude, seperate with ','")
 	saveto := flag.String("o", "", "file name to save hashed info, will be truncked if exist!!")
 	flag.Parse()
@@ -87,7 +87,7 @@ func main() {
 		flag.Usage()
 		return
 	}
-	filepath.Walk(*dir, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(*dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
@@ -106,4 +106,7 @@ func main() {
 		}
 		return nil
 	})
+	if err != nil {
+		flag.Usage()
+	}
 }
