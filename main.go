@@ -25,24 +25,66 @@ func Hash_file(path string) (hash string, err error) {
 	return fmt.Sprintf("%s,%v,%x", finfo.Name(), finfo.Size(), h.Sum(nil)), nil
 }
 
-func FileExcluded(path string, x []string) bool {
+func FileExcluded(path string, x []exclude) bool {
+	parts := strings.Split(path, string(os.PathSeparator))
+	name := parts[len(parts)-1]
+	for _, s := range x {
+		if s.Exclude(name) {
+			return true
+		}
+	}
 	return false
+}
+
+func build_excludes(x string) []exclude {
+	var excludes []exclude
+	xarray := strings.Split(x, ",")
+	for _, s := range xarray {
+		if len(s) == 0 {
+			continue
+		}
+		exp := strings.Trim(s, "*")
+		if strings.HasPrefix(s, "*") {
+			excludes = append(excludes, exclude{exp, func(p, e string) bool {
+				return strings.HasPrefix(p, e)
+			}})
+		}
+		if strings.HasSuffix(s, "*") {
+			excludes = append(excludes, exclude{exp, func(p, e string) bool {
+				return strings.HasSuffix(p, e)
+			}})
+		}
+		if strings.Index(s, "*") < 0 {
+			excludes = append(excludes, exclude{exp, func(p, e string) bool {
+				return p == e
+			}})
+		}
+	}
+	return excludes
+}
+
+type exclude struct {
+	exp   string
+	check func(string, string) bool
+}
+
+func (self *exclude) Exclude(path string) bool {
+	return self.check(path, self.exp)
 }
 
 func main() {
 	dir := flag.String("p", ".", "dir to hash")
-	exclude := flag.String("x", "", "file/dir name to exclude, seperate with ','")
+	x := flag.String("x", "", "file/dir name to exclude, seperate with ','")
 	saveto := flag.String("o", "hash", "file name to save hashed info, will be truncked if exist!!")
 	flag.Parse()
+
+	excludes := build_excludes(*x)
 
 	h_file, err := os.Create(*saveto)
 	if err != nil {
 		return
 	}
 	defer h_file.Close()
-
-	excludes := strings.Split(*exclude, ",")
-
 	filepath.Walk(*dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
@@ -62,5 +104,5 @@ func main() {
 		}
 		return nil
 	})
-	fmt.Print(*dir, exclude, saveto)
+	fmt.Print(*dir, excludes, saveto)
 }
