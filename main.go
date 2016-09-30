@@ -4,10 +4,13 @@ import (
 	"crypto/sha1"
 	"flag"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
+)
+
+const (
+	BlockSize = 64 * 64
 )
 
 func Hash_file(path string) (hash string, err error) {
@@ -17,7 +20,17 @@ func Hash_file(path string) (hash string, err error) {
 	if err != nil {
 		return
 	}
-	io.Copy(h, file)
+	buf := make([]byte, BlockSize)
+	for {
+		n, err := file.Read(buf)
+		if n > 0 {
+			h.Write(buf[:n])
+		}
+		if err != nil {
+			break
+		}
+	}
+
 	finfo, err := os.Stat(path)
 	if err != nil {
 		return
@@ -83,10 +96,16 @@ func main() {
 
 	h_file, err := os.Create(*saveto)
 	defer h_file.Close()
+
 	if err != nil {
 		flag.Usage()
 		return
 	}
+
+	rst_channel := make(chan string, 10)
+	n_found := 0
+	close_channel := make(chan bool, 1)
+
 	err = filepath.Walk(*dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
@@ -99,15 +118,36 @@ func main() {
 			}
 		}
 		if !info.IsDir() {
-			h, err := Hash_file(path)
-			if err == nil {
-				h_file.WriteString(h + "\r\n")
-			}
+			n_found++
+			go func() {
+				h, err := Hash_file(path)
+				if err == nil {
+					rst_channel <- h + "\r\n"
+				}
+			}()
 		}
 		return nil
 	})
+
 	if err != nil {
-		fmt.Print(err)
 		flag.Usage()
+	}
+
+	go func() {
+		for {
+			rst := <-rst_channel
+			h_file.WriteString(rst)
+			n_found--
+			if n_found == 0 {
+				close_channel <- true
+				break
+			}
+		}
+	}()
+
+	signal := <-close_channel
+	if signal {
+		close(rst_channel)
+		return
 	}
 }

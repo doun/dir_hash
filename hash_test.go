@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/sha1"
 	"fmt"
 	"strings"
 	"testing"
@@ -38,4 +39,18 @@ func Test_strings_prefix(t *testing.T) {
 	if !strings.HasPrefix("a", "a") {
 		t.Fail()
 	}
+}
+
+func Test_write(t *testing.T) {
+	h := sha1.New()
+	str := "abc"
+	str1 := "def"
+	h.Write([]byte(str))
+	h.Write([]byte(str1))
+	sum := h.Sum(nil)
+	h.Reset()
+	h.Write([]byte(str + str1))
+	sum2 := h.Sum(nil)
+	fmt.Println("got1:%x", sum)
+	fmt.Println("got2:%x", sum2)
 }
